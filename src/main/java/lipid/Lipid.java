@@ -1,5 +1,7 @@
 package lipid;
 
+import org.drools.ruleunits.api.RuleUnit;
+
 import java.util.Objects;
 
 public class Lipid {
