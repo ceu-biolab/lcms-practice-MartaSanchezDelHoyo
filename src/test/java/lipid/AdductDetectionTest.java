@@ -34,11 +34,11 @@ public class AdductDetectionTest {
         double annotationRT = 6.5d;
         Annotation annotation = new Annotation(lipid, annotationMZ, annotationIntensity, annotationRT, IoniationMode.POSITIVE, Set.of(mH, mNa));
 
-
+        annotation.detectAdductFromPeaks();
         // Then we should call the algorithmic/knowledge system rules fired to detect the adduct and Set it!
         //
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
-        assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
+        assertEquals("Adduct inferred from lowest mz in group", "[M+H]+", annotation.getAdduct());
     }
 
 
@@ -50,11 +50,10 @@ public class AdductDetectionTest {
         Lipid lipid = new Lipid(1, "PE 36:2", "C41H78NO8P", "PE", 36, 2);
         Annotation annotation = new Annotation(lipid, mh.getMz(), mh.getIntensity(), 7.5d, IoniationMode.POSITIVE, Set.of(mh, mhH2O));
 
-
-
+        annotation.detectAdductFromPeaks();
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
 
-        assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
+        assertEquals("Adduct inferred from lowest mz in group", "[M+H]+", annotation.getAdduct());
     }
 
     @Test
@@ -67,9 +66,10 @@ public class AdductDetectionTest {
         Lipid lipid = new Lipid(3, "TG 54:3", "C57H104O6", "TG", 54, 3);
         Annotation annotation = new Annotation(lipid, singlyCharged.getMz(), singlyCharged.getIntensity(), 10d, IoniationMode.POSITIVE, Set.of(singlyCharged, doublyCharged));
 
+        annotation.detectAdductFromPeaks();
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
 
-        assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
+        assertEquals("Adduct inferred from lowest mz in group", "[M+H]+", annotation.getAdduct());
     }
 
 }
