@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import adduct.Adduct ;
 
 
 
@@ -141,49 +142,102 @@ public class Annotation {
     }
 
     // !!TODO Detect the adduct with an algorithm or with drools, up to the user.
-    public void detectAdductFromPeaks() {
-        if (groupedSignals == null || groupedSignals.isEmpty()) return;
 
-        Map<String, Double> knownAdductsPositive =AdductList.MAPMZPOSITIVEADDUCTS;
-        Map<String, Double> knownAdductsNegative =AdductList.MAPMZNEGATIVEADDUCTS;
+    /**
+     * The method compares the monoisotopic masses of the posibles adducts, and then selects
+     * between the possibles ones which correspond to the peak indicated in the annotation
+     *
+     * @param tolerance tolerance for the difference between monoisotopic masses
+     */
 
-        // 🔹 Paso 2: Probar todas las combinaciones de pico y aducto
-        for (Peak peak : groupedSignals) {
-            double observedMz = peak.getMz();
-            boolean matched=false;
-            for (Map.Entry<String, Double> entry : knownAdductsPositive.entrySet()) {
-                // 🔸 Estimar la masa neutra suponiendo que este pico corresponde a ese aducto
-                double neutralMass = observedMz - entry.getValue();
-                // 🔸 Con esa masa neutra estimada, genera m/z esperados para todos los aductos conocidos
-                for (double otherAdductMass : knownAdductsPositive.values()) {
-                    double expectedMz = neutralMass + otherAdductMass;
-                    System.out.printf(expectedMz + entry.getKey()+"\t");
-                    // 🔸 Verificar si ese m/z esperado está presente en los picos observados
-                    matched = groupedSignals.stream().anyMatch(p -> Math.abs(p.getMz() - expectedMz) < 0.01);
-                    if (matched) {
-                        this.adduct = entry.getKey();
-                        break;
+    public void detectAdductFromPeaks(double tolerance) {
+
+        Map<String, Double> adductMap;
+        if (ionizationMode == IoniationMode.POSITIVE) {
+            adductMap = AdductList.MAPMZPOSITIVEADDUCTS;
+        } else {
+            adductMap = AdductList.MAPMZNEGATIVEADDUCTS;
+        }
+
+        List<Peak> peaks = new ArrayList<>(groupedSignals);
+        double bestDiff = Double.MAX_VALUE;
+
+        for (int i = 0; i < peaks.size(); i++) {
+
+            for (int j = i + 1; j < peaks.size(); j++) {
+                Peak p1 = peaks.get(i);
+                Peak p2 = peaks.get(j);
+
+                // We try all possible combinations of adducts in a pair of peaks
+                for (String ad1 : adductMap.keySet()) {
+                    System.out.println(ad1);
+                    double m1 = Adduct.getMonoisotopicMassFromMZ(p1.getMz(), ad1, this.ionizationMode);
+                    for (String ad2 : adductMap.keySet()) {
+                        if (ad1.equals(ad2)) continue;
+                        double m2 = Adduct.getMonoisotopicMassFromMZ(p2.getMz(), ad2, this.ionizationMode);
+                        double diff = Math.abs(m1 - m2);
+                        System.out.println(ad1+m1 + " - " + ad2 +m2+ " = Difference is " + diff);
+                        if (diff < bestDiff && diff <= tolerance) {
+
+                            if (Math.abs(p1.getMz() - this.mz) < 1e-6) {
+                                setAdduct(ad1);
+                             return;
+                            } else if (Math.abs(p2.getMz() - this.mz) < 1e-6) {
+                                System.out.println(ad2.toString());
+                                setAdduct(ad2);
+                                return;
+                            } else {
+                                //neigther of both is exactly this.mz;
+                                this.adduct = "Unknown";
+                                return;
+                            }
+                        }
                     }
                 }
-                if (matched) {break;}
             }
-            if (!matched) {
-                for (Map.Entry<String, Double> entry : knownAdductsNegative.entrySet()) {
-                    // 🔸 Estimar la masa neutra suponiendo que este pico corresponde a ese aducto
-                    double neutralMass = observedMz - entry.getValue();
-                    for (double otherAdductMass : knownAdductsNegative.values()) {
-                        double expectedMz = neutralMass + otherAdductMass;
-
-                        matched = groupedSignals.stream().anyMatch(p ->
-                                Math.abs(p.getMz() - expectedMz) < 0.01
-                        );
-                        if (matched) {this.adduct=entry.getKey();
-                            System.out.printf( matched+this.adduct+"\t");
-                            break;}
-                    }
-                }
-            }
-            if (matched) {break;}
         }
     }
+    public void detectAdductFromPeaksWithMZ () {
+            double tolerance = 0.01d;
+            Map<String, Double> adductMap;
+            if (ionizationMode == IoniationMode.POSITIVE) {
+                adductMap = AdductList.MAPMZPOSITIVEADDUCTS;
+            } else {
+                adductMap = AdductList.MAPMZNEGATIVEADDUCTS;
+            }
+
+            List<Peak> peaks = new ArrayList<>(groupedSignals);
+            double bestDiff = Double.MAX_VALUE;
+            for (int i = 0; i < peaks.size(); i++) {
+
+                for (int j = i + 1; j < peaks.size(); j++) {
+                    Peak p1 = peaks.get(i);
+                    Peak p2 = peaks.get(j);
+
+                    for (String ad1 : adductMap.keySet()) {
+                        double m1 = Adduct.getMZFromMonoisotopicMass(p1.getMz(), ad1, this.ionizationMode);
+                        for (String ad2 : adductMap.keySet()) {
+                            if (ad1.equals(ad2)) continue;
+                            double m2 = Adduct.getMZFromMonoisotopicMass(p2.getMz(), ad2, this.ionizationMode);
+                            double diff = Math.abs(m1 - m2);
+                            System.out.println(ad1 + " - " + ad2 + " = Difference is " + diff);
+                            if (diff < bestDiff && diff <= tolerance) {
+
+                                if (Math.abs(p1.getMz() - this.mz) < 1e-6) {
+                                    setAdduct(ad1);
+                                    return;
+                                } else if (Math.abs(p2.getMz() - this.mz) < 1e-6) {
+                                    setAdduct(ad2);
+                                    return;
+                                } else {
+                                    this.adduct = "Unknown";
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    }
+
 }
