@@ -1,5 +1,11 @@
 package adduct;
 
+import lipid.IoniationMode;
+
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class Adduct {
 
     /**
@@ -8,24 +14,54 @@ public class Adduct {
      * @param mz mz
      * @param adduct adduct name ([M+H]+, [2M+H]+, [M+2H]2+, etc..)
      *
-     * @return the monoisotopic mass of the experimental mass mz with the adduct @param adduct
+     * @return the monoisotopic mass of the experimental mass mz with the adduct
+     * @param adduct
      */
-    public static Double getMonoisotopicMassFromMZ(Double mz, String adduct) {
-        Double massToSearch;
-        // !! TODO METHOD
-        // !! TODO Create the necessary regex to obtain the multimer (number before the M) and the charge (number before the + or - (if no number, the charge is 1).
+    public static Double getMonoisotopicMassFromMZ(Double mz, String adduct, IoniationMode mode) {
+        if (mz == null || adduct == null) return null;
 
-        /*
-        if Adduct is single charge the formula is M = m/z +- adductMass. Charge is 1 so it does not affect
+        // Regex para extraer multímero y carga
+        Pattern pattern = Pattern.compile("\\[(\\d*)M[+-][^\\]]+\\](\\d*)?([+-])");
+        Matcher matcher = pattern.matcher(adduct);
 
-        if Adduct is double or triple charged the formula is M = ( mz +- adductMass ) * charge
+        int multimer = 1;
+        int charge = 1;
 
-        if adduct is a dimer or multimer the formula is M =  (mz +- adductMass) / numberOfMultimer
+        if (matcher.find()) {
+            String multimerStr = matcher.group(1);
+            String chargeNumberStr = matcher.group(2);
+            String chargeSign = matcher.group(3);
 
-        return monoisotopicMass;
+            if (!multimerStr.isEmpty()) {
+                multimer = Integer.parseInt(multimerStr);
+            }
 
-         */
-        return null;
+            if (!chargeNumberStr.isEmpty()) {
+                charge = Integer.parseInt(chargeNumberStr);
+            } else {
+                charge = 1;  // por defecto
+            }
+
+            // si es carga negativa, poner signo negativo
+            if (chargeSign.equals("-")) {
+                charge = -charge;
+            }
+        }
+
+        Map<String, Double> adductMap;
+        if(mode== IoniationMode.POSITIVE) {
+            adductMap = AdductList.MAPMZPOSITIVEADDUCTS;
+        }
+        else {
+            adductMap = AdductList.MAPMZNEGATIVEADDUCTS;
+        }
+
+        Double adductMass = adductMap.get(adduct);
+        if (adductMass == null) {
+            throw new IllegalArgumentException("Adduct not found in the list: " + adduct);
+        }
+        Double massSearched=(mz * charge) + adductMass / multimer;
+        return massSearched;
     }
 
     /**
@@ -36,24 +72,46 @@ public class Adduct {
      *
      * @return
      */
-    public static Double getMZFromMonoisotopicMass(Double monoisotopicMass, String adduct) {
+    public static Double getMZFromMonoisotopicMass(Double monoisotopicMass, String adduct, IoniationMode ioniationMode) {//a partir de una masa conocida, quiere calcular qué m/z esperas ver si usas un aducto
+        //Tienes una molécula con masa 500, y sabes que el aducto es [M+H]+, entonces esperas:
+        //mz = 500 + 1.007276 = 501.007
         Double massToSearch;
-        // !! TODO METHOD
-        // !! TODO Create the necessary regex to obtain the multimer (number before the M) and the charge (number before the + or - (if no number, the charge is 1).
 
-        /*
-        if Adduct is single charge the formula is m/z = M +- adductMass. Charge is 1 so it does not affect
+        if (monoisotopicMass == null || adduct == null) return null;
 
-        if Adduct is double or triple charged the formula is mz = M/charge +- adductMass
+        Pattern pattern = Pattern.compile("\\[([0-9]*)?M.*?([+-])(\\d*)?\\]([+-])");
+        Matcher matcher = pattern.matcher(adduct);
 
-        if adduct is a dimer or multimer the formula is mz = M * numberOfMultimer +- adductMass
+        int multimer = 1;
+        int charge = 1;
 
-        return monoisotopicMass;
+        if (matcher.find()) {
+            String multimerStr = matcher.group(1);
+            String chargeStr = matcher.group(3);
 
-         */
-        return null;
+            if (multimerStr != null && !multimerStr.isEmpty()) {
+                multimer = Integer.parseInt(multimerStr);
+            }
+            if (chargeStr != null && !chargeStr.isEmpty()) {
+                charge = Integer.parseInt(chargeStr);
+            }
+        }
+        Map<String, Double> adductMap;
+        if(ioniationMode == IoniationMode.POSITIVE) {
+            adductMap = AdductList.MAPMZPOSITIVEADDUCTS;
+        }
+        else {
+            adductMap = AdductList.MAPMZNEGATIVEADDUCTS;
+        }
+
+        Double adductMass = adductMap.get(adduct);
+        if (adductMass == null) {
+            throw new IllegalArgumentException("Adduct not found in the list: " + adduct);
+        }
+
+
+        return  ((monoisotopicMass* multimer) / charge) - adductMass;
     }
-
     /**
      * Returns the ppm difference between measured mass and theoretical mass
      *

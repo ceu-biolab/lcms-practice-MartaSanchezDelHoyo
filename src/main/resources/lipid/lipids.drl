@@ -1,27 +1,188 @@
 
 package lipid;
-
 unit LipidScoreUnit;
+
+import lipid.LipidScoreUnit;
+import lipid.LipidUtils;
 
 // TODO Include here rules and queries to fulfill the practice requirements
 
 
 // This is one example of rules that only prints the factorial combination of all pairs eliminating the A-A combination.
-// !! TODO This rule does not include the lipid type, you shall add it.
+// !! TODO This rule does not include the lipid type, you shall add it.--DONE
 // !! TODO Rule that states that the same lipid type with the same number of double bonds and a higher number of carbons should have a higher RT
 // !! TODO
+
 rule "Score 1 for lipid pair with increasing RT and carbon count"
 when
-    $a1 : /annotations [$rt1 : rtMin, $carbonCount1 : lipid.getCarbonCount(), $doubleBondCount : lipid.getDoubleBondsCount()]
-    $a2 : /annotations [this!= $a1, lipid.getDoubleBondsCount() == $doubleBondCount,
-    rtMin > $rt1, lipid.getCarbonCount() > $carbonCount1]
+    $a1 : /annotations [
+    $rt1 : rtMin,
+    $carbonCount1 : lipid.getCarbonCount(),
+    $doubleBondCount1 : lipid.getDoubleBondsCount(),
+    $lipidtype1: lipid.getLipidType()]
+
+    $a2 : /annotations [
+    this!=$a1,
+    $rt2: rtMin,
+    $doubleBondCount2 :lipid.getDoubleBondsCount(),
+    $carbonCount2: lipid.getCarbonCount(),
+    $lipidType2: lipid.getLipidType(),
+
+    $rt1>$rt2,
+    $lipidtype1==$lipidType2,
+    $doubleBondCount1==$doubleBondCount2,
+    $carbonCount1> $carbonCount2]
 then
+System.out.printf("$a1:  "+$a1.toString()+"\n");
+System.out.println("$a2"+$a2.toString()+$a2.getTotalScoresApplied()+$a2.getNormalizedScore());
+
     // in this case, the only change is the addition of the score, but the fact does not change so we do not break the principle of refractoriness
     $a1.addScore(1);
     $a2.addScore(1);
-    // !! TODO ONLY FOR DEBUGGING
-    System.out.println("Scored 1 for annotations: " + $a1 + " and " + $a2);
+    System.out.println("regla 1 "+$a1.getScore()+"/"+$a1.getTotalScoresApplied()+"="+$a1.getScore()/$a1.getTotalScoresApplied());
+end
+rule "Score based on correct elution order for double bonds"
+when
+      $a1 : /annotations [
+        $rt1 : rtMin,
+        $carbonCount1 : lipid.getCarbonCount(),
+        $doubleBondCount1 : lipid.getDoubleBondsCount(),
+        $lipidtype1: lipid.getLipidType()]
+
+        $a2 : /annotations [this!=$a1,
+        $rt2: rtMin,
+        $doubleBondCount2 :lipid.getDoubleBondsCount(),
+        $carbonCount2: lipid.getCarbonCount(),
+        $lipidType2: lipid.getLipidType(),
+
+        $rt1>$rt2,
+        $lipidtype1==$lipidType2,
+        $doubleBondCount1<$doubleBondCount2,
+        $carbonCount1== $carbonCount2]
+then
+System.out.printf("$a1:  "+$a1.toString()+"\n");
+System.out.println("$a2"+$a2.toString()+$a2.getTotalScoresApplied()+$a2.getNormalizedScore());
+
+    $a1.addScore(1);
+    $a2.addScore(1);
+    System.out.println("regla2  "+$a1.getTotalScoresApplied());
 end
 
+rule "Elution order by lipid type when carbon and double bonds are equal"
+when
+      $a1 : /annotations [
+        $rt1 : rtMin,
+        $carbonCount1 : lipid.getCarbonCount(),
+        $doubleBondCount1 : lipid.getDoubleBondsCount(),
+        $lipidtype1: lipid.getLipidType()]
+
+        $a2 : /annotations [
+        this!=$a1,
+        $rt2: rtMin,
+        $doubleBondCount2 :lipid.getDoubleBondsCount(),
+        $carbonCount2: lipid.getCarbonCount(),
+        $lipidType2: lipid.getLipidType(),
+
+
+        $doubleBondCount1==$doubleBondCount2,
+        $carbonCount1==$carbonCount2,
+        eval( $rt1 > $rt2 ),
+        eval( ! $lipidtype1.equals($lipidType2) ),
+        eval(LipidUtils.getLipidTypeRank($lipidType2) <LipidUtils.getLipidTypeRank($lipidtype1))
+
+        ]
+
+then
+System.out.printf("$a1:  "+$a1.toString()+"\n");
+System.out.println("$a2"+$a2.toString()+$a2.getTotalScoresApplied()+$a2.getNormalizedScore());
+
+     $a1.addScore(1);
+     $a2.addScore(1);
+    System.out.println("regla 3  "+$a1.getScore()+"/"+$a1.getTotalScoresApplied()+"="+$a1.getScore()/$a1.getTotalScoresApplied());
+// “A esta anotación $a, le estamos reconociendo que pasó una regla válida, así que aumentamos su puntuación y registramos que se evaluó.”
+end
 
 // !! TODO NEXT RULE: Negative evidence. If the RT follows the opposite order than the previous one, then the addScore should be -1.
+
+rule " RT Elution order based on negative evidence based on carbon count"
+when
+    $a1 : /annotations [
+           $rt1 : rtMin,
+           $carbonCount1 : lipid.getCarbonCount(),
+           $doubleBondCount1 : lipid.getDoubleBondsCount(),
+           $lipidtype1: lipid.getLipidType()]
+
+           $a2 : /annotations [
+           this!=$a1,
+           $rt2: rtMin,
+           $doubleBondCount2 :lipid.getDoubleBondsCount(),
+           $carbonCount2: lipid.getCarbonCount(),
+           $lipidType2: lipid.getLipidType(),
+
+           $rt1<$rt2,
+           $lipidtype1==$lipidType2,
+           $doubleBondCount1==$doubleBondCount2,
+           $carbonCount1>$carbonCount2]
+then
+    // in this case, the only change is the addition of the score, but the fact does not change so we do not break the principle of refractoriness
+     System.out.println($a1.getNormalizedScore()+" "+$a1.getScore());
+    $a1.addScore(-1);
+    $a2.addScore(-1);
+    System.out.println("rule 4: "+$a1.getNormalizedScore()+" "+$a1.getScore());
+end
+rule " RT Elution order based on negative evidence based on double bonds count"
+when
+    $a1 : /annotations [
+           $rt1 : rtMin,
+           $carbonCount1 : lipid.getCarbonCount(),
+           $doubleBondCount1 : lipid.getDoubleBondsCount(),
+           $lipidtype1: lipid.getLipidType()]
+
+           $a2 : /annotations [
+           this!=$a1,
+           $rt2: rtMin,
+           $doubleBondCount2 :lipid.getDoubleBondsCount(),
+           $carbonCount2: lipid.getCarbonCount(),
+           $lipidType2: lipid.getLipidType(),
+
+           $rt1<$rt2,
+           $lipidtype1==$lipidType2,
+           $doubleBondCount1<$doubleBondCount2,
+           $carbonCount1==$carbonCount2]
+then
+ System.out.println($a1.getNormalizedScore()+" "+$a1.getScore());
+    $a1.addScore(-1);
+    $a2.addScore(-1);
+    System.out.println("regla 5"+$a1.getNormalizedScore()+" "+$a1.getScore());
+end
+rule " RT Elution order based on negative evidence based on lipid order"
+when
+     $a1 : /annotations [
+            $rt1 : rtMin,
+            $carbonCount1 : lipid.getCarbonCount(),
+            $doubleBondCount1 : lipid.getDoubleBondsCount(),
+            $lipidtype1: lipid.getLipidType()]
+
+            $a2 : /annotations [
+            this!=$a1,
+            $rt2: rtMin,
+            $doubleBondCount2 :lipid.getDoubleBondsCount(),
+            $carbonCount2: lipid.getCarbonCount(),
+            $lipidType2: lipid.getLipidType(),
+
+            $doubleBondCount1==$doubleBondCount2,
+            $carbonCount1==$carbonCount2,
+            $rt1 < $rt2,
+            eval( ! $lipidtype1.equals($lipidType2) ),
+            eval(LipidUtils.getLipidTypeRank($lipidType2) <LipidUtils.getLipidTypeRank($lipidtype1))
+
+            ]
+
+then
+System.out.println($a1.toString()+$a1.getTotalScoresApplied()+$a1.getNormalizedScore());
+System.out.println($a2.toString()+$a2.getTotalScoresApplied()+$a2.getNormalizedScore());
+
+    $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("rule 6 "+$a1.getNormalizedScore()+" "+$a1.getScore());
+end

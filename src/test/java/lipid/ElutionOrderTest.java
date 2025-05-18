@@ -74,6 +74,9 @@ public class ElutionOrderTest {
     /**
      * !!TODO Test to check the elution order of the lipids. The elution order is based on the number of double bonds if the lipid type and the number of
      * carbons is the same. The higher the number of double bonds, the shorter the RT.
+     *
+     *
+     * Como hago para solucionar q no salga infinito
      */
     @Test
     public void score1BasedOnRTDoubleBonds() {
@@ -167,12 +170,12 @@ public class ElutionOrderTest {
      * -> PG < PE < PI < PA < PS << PC.
      */
     @Test
-    public void negativeScoreBasedOnRTNumberOfCarbons() {
+    public void negativeScoreBasedOnRTLypidType() {
         // Assume lipids already annotated
         LOG.info("Creating RuleUnit");
-        LipidScoreUnit lipidScoreUnit = new LipidScoreUnit();
-
-        RuleUnitInstance<LipidScoreUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(lipidScoreUnit);
+        LipidScoreUnit myCustomUnit = new LipidScoreUnit();
+        RuleUnitInstance<LipidScoreUnit> instance =
+                RuleUnitProvider.get().createRuleUnitInstance(myCustomUnit);
 
         // TODO CHECK THE Monoisotopic MASSES OF THE COMPOUNDS IN https://chemcalc.org/
 
@@ -186,9 +189,9 @@ public class ElutionOrderTest {
         LOG.info("Insert data");
 
         try {
-            lipidScoreUnit.getAnnotations().add(annotation1);
-            lipidScoreUnit.getAnnotations().add(annotation2);
-            lipidScoreUnit.getAnnotations().add(annotation3);
+            myCustomUnit.getAnnotations().add(annotation1);
+            myCustomUnit.getAnnotations().add(annotation2);
+            myCustomUnit.getAnnotations().add(annotation3);
 
             LOG.info("Run query. Rules are also fired");
             instance.fire();
@@ -214,10 +217,9 @@ public class ElutionOrderTest {
     public void negativeScoreBasedOnRTDoubleBonds() {
         // Assume lipids already annotated
         LOG.info("Creating RuleUnit");
-        LipidScoreUnit lipidScoreUnit = new LipidScoreUnit();
-
-        RuleUnitInstance<LipidScoreUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(lipidScoreUnit);
-
+        LipidScoreUnit myCustomUnit = new LipidScoreUnit();
+        RuleUnitInstance<LipidScoreUnit> instance =
+                RuleUnitProvider.get().createRuleUnitInstance(myCustomUnit);
         // TODO CHECK THE Monoisotopic MASSES OF THE COMPOUNDS IN https://chemcalc.org/
 
         Lipid lipid1 = new Lipid(1, "TG 54:3", "C57H104O6", "TG", 54, 3); // MZ of [M+H]+ = 885.79057
@@ -230,9 +232,9 @@ public class ElutionOrderTest {
         LOG.info("Insert data");
 
         try {
-            lipidScoreUnit.getAnnotations().add(annotation1);
-            lipidScoreUnit.getAnnotations().add(annotation2);
-            lipidScoreUnit.getAnnotations().add(annotation3);
+            myCustomUnit.getAnnotations().add(annotation1);
+            myCustomUnit.getAnnotations().add(annotation2);
+            myCustomUnit.getAnnotations().add(annotation3);
 
             LOG.info("Run query. Rules are also fired");
             instance.fire();
@@ -254,13 +256,12 @@ public class ElutionOrderTest {
      * double bonds is the same. The larger the number of carbons, the longer the RT.
      */
     @Test
-    public void negativeScoreBasedOnLipidType() {
+    public void negativeScoreBasedOnCarbonCount() {
         // Assume lipids already annotated
         LOG.info("Creating RuleUnit");
-        LipidScoreUnit lipidScoreUnit = new LipidScoreUnit();
-
-        RuleUnitInstance<LipidScoreUnit> instance = RuleUnitProvider.get().createRuleUnitInstance(lipidScoreUnit);
-
+        LipidScoreUnit myCustomUnit = new LipidScoreUnit();
+        RuleUnitInstance<LipidScoreUnit> instance =
+                RuleUnitProvider.get().createRuleUnitInstance(myCustomUnit);
         // TODO CHECK THE Monoisotopic MASSES OF THE COMPOUNDS IN https://chemcalc.org/
 
         Lipid lipid1 = new Lipid(1, "TG 54:3", "C57H104O6", "TG", 54, 3); // MZ of [M+H]+ = 885.79057
@@ -273,9 +274,9 @@ public class ElutionOrderTest {
         LOG.info("Insert data");
 
         try {
-            lipidScoreUnit.getAnnotations().add(annotation1);
-            lipidScoreUnit.getAnnotations().add(annotation2);
-            lipidScoreUnit.getAnnotations().add(annotation3);
+            myCustomUnit.getAnnotations().add(annotation1);
+            myCustomUnit.getAnnotations().add(annotation2);
+            myCustomUnit.getAnnotations().add(annotation3);
 
             LOG.info("Run query. Rules are also fired");
             instance.fire();
